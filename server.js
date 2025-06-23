@@ -105,7 +105,7 @@ class UnoGame {
     }
     
     startGame() {
-        if (this.players.length < 2) return false;
+        if (this.players.length < 1) return false; // Allow solo play for testing
         
         // Deal 7 cards to each player
         this.players.forEach(player => {
