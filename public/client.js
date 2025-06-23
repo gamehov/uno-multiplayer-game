@@ -251,8 +251,17 @@ class UnoMultiplayerClient {
         // Update top card
         const topCardEl = document.getElementById('topCard');
         if (this.gameState.topCard) {
-            topCardEl.className = `card ${this.gameState.currentColor}`;
-            topCardEl.textContent = this.getCardDisplay(this.gameState.topCard);
+            let cardClass = `card ${this.gameState.currentColor}`;
+            if (this.gameState.currentColor === 'black') {
+                cardClass += ' wild-card';
+            }
+            topCardEl.className = cardClass;
+
+            const cardDisplay = this.getCardDisplay(this.gameState.topCard);
+            topCardEl.innerHTML = `
+                <div class="card-number">${cardDisplay.number}</div>
+                <div class="card-symbol">${cardDisplay.symbol}</div>
+            `;
         }
         
         // Update deck count
@@ -305,17 +314,30 @@ class UnoMultiplayerClient {
         
         this.gameState.playerHand.forEach((card, index) => {
             const cardEl = document.createElement('div');
-            cardEl.className = `card ${card.color}`;
-            cardEl.textContent = this.getCardDisplay(card);
-            
+            let cardClass = `card ${card.color}`;
+
+            // Add special styling for wild cards
+            if (card.color === 'black') {
+                cardClass += ' wild-card';
+            }
+
+            cardEl.className = cardClass;
+
+            // Create card content with proper UNO styling
+            const cardDisplay = this.getCardDisplay(card);
+            cardEl.innerHTML = `
+                <div class="card-number">${cardDisplay.number}</div>
+                <div class="card-symbol">${cardDisplay.symbol}</div>
+            `;
+
             if (this.gameState.isYourTurn && this.canPlayCard(card)) {
                 cardEl.classList.add('playable');
             }
-            
+
             if (this.gameState.isYourTurn) {
                 cardEl.addEventListener('click', () => this.playCard(index));
             }
-            
+
             handEl.appendChild(cardEl);
         });
     }
@@ -332,13 +354,36 @@ class UnoMultiplayerClient {
     }
     
     getCardDisplay(card) {
-        if (card.type === 'number') return card.value;
-        if (card.type === 'skip') return '⊘';
-        if (card.type === 'reverse') return '↻';
-        if (card.type === 'draw2') return '+2';
-        if (card.type === 'wild') return 'W';
-        if (card.type === 'wild4') return '+4';
-        return '?';
+        const symbols = {
+            'skip': '🚫',
+            'reverse': '🔄',
+            'draw2': '+2',
+            'wild': '🌈',
+            'wild4': '🌈+4'
+        };
+
+        if (card.type === 'number') {
+            return {
+                number: card.value,
+                symbol: this.getColorSymbol(card.color)
+            };
+        }
+
+        return {
+            number: symbols[card.type] || '?',
+            symbol: card.color === 'black' ? '✨' : this.getColorSymbol(card.color)
+        };
+    }
+
+    getColorSymbol(color) {
+        const colorSymbols = {
+            'red': '♦',
+            'blue': '♠',
+            'green': '♣',
+            'yellow': '♥',
+            'black': '✨'
+        };
+        return colorSymbols[color] || '●';
     }
     
     showColorPicker() {
