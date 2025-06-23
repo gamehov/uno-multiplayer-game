@@ -100,20 +100,53 @@
             border-color: #ffa502;
         }
         .card.playable {
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
-            animation: playablePulse 1.5s ease-in-out infinite;
-            border-color: #ffd700;
-            transform: scale(1.05);
+            box-shadow:
+                0 0 40px rgba(0, 255, 0, 0.9),
+                0 0 80px rgba(0, 255, 0, 0.5),
+                inset 0 0 20px rgba(255, 255, 255, 0.3);
+            animation: playablePulse 1s ease-in-out infinite;
+            border: 4px solid #00ff00;
+            transform: scale(1.1) translateY(-5px);
+            z-index: 10;
+            position: relative;
+        }
+
+        .card.playable::after {
+            content: '✓ PLAY';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #00ff00;
+            color: #000;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 6px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .card.not-playable {
+            opacity: 0.4;
+            filter: grayscale(70%);
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         @keyframes playablePulse {
             0%, 100% {
-                box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
-                border-color: #ffd700;
+                box-shadow:
+                    0 0 40px rgba(0, 255, 0, 0.9),
+                    0 0 80px rgba(0, 255, 0, 0.5),
+                    inset 0 0 20px rgba(255, 255, 255, 0.3);
+                border-color: #00ff00;
             }
             50% {
-                box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 80px rgba(255, 215, 0, 0.6);
-                border-color: #ffed4e;
+                box-shadow:
+                    0 0 60px rgba(0, 255, 0, 1),
+                    0 0 120px rgba(0, 255, 0, 0.7),
+                    inset 0 0 30px rgba(255, 255, 255, 0.5);
+                border-color: #66ff66;
             }
         }
 
@@ -419,11 +452,37 @@
             <!-- Player hand -->
             <div class="bg-slate-800 p-4">
                 <div class="text-center mb-4">
-                    <div class="text-white font-semibold">Your Hand</div>
-                    <div class="text-slate-400 text-sm">Tap a glowing card to play it</div>
+                    <div class="flex items-center justify-center gap-4 mb-2">
+                        <div class="text-white font-semibold">Your Hand</div>
+                        <button
+                            id="unoButton"
+                            class="hidden bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 animate-pulse"
+                        >
+                            🎯 UNO!
+                        </button>
+                    </div>
+                    <div class="text-slate-400 text-sm">Tap a glowing green card to play it</div>
+                    <div id="unoWarning" class="hidden text-yellow-400 text-xs mt-1 font-semibold">
+                        ⚠️ Don't forget to call UNO when you have 1 card left!
+                    </div>
                 </div>
                 <div id="playerHand" class="player-hand">
                     <!-- Cards will be generated here -->
+                </div>
+
+                <!-- UNO Call Out Section -->
+                <div id="unoCallOut" class="hidden mt-4 p-3 bg-red-900 border border-red-500 rounded-lg">
+                    <div class="text-center">
+                        <div class="text-red-300 font-semibold mb-2">Someone forgot to call UNO!</div>
+                        <div class="flex justify-center gap-2">
+                            <button
+                                id="callOutButton"
+                                class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-all"
+                            >
+                                📢 Call Them Out!
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
