@@ -42,7 +42,11 @@ class UnoMultiplayerClient {
         // Game elements
         document.getElementById('backToLobbyBtn').addEventListener('click', () => this.leaveLobby());
         document.getElementById('drawPile').addEventListener('click', () => this.drawCard());
-        
+
+        // UNO functionality
+        document.getElementById('unoButton').addEventListener('click', () => this.callUno());
+        document.getElementById('callOutButton').addEventListener('click', () => this.callOutUno());
+
         // Color picker
         document.querySelectorAll('.color-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -113,6 +117,18 @@ class UnoMultiplayerClient {
         
         this.socket.on('error', (data) => {
             this.showNotification(data.message, 'error');
+        });
+
+        this.socket.on('unoCall', (data) => {
+            this.gameState = data.gameState;
+            this.updateGameDisplay();
+            this.showNotification(`🎯 ${data.playerName} called UNO!`);
+        });
+
+        this.socket.on('unoCallOut', (data) => {
+            this.gameState = data.gameState;
+            this.updateGameDisplay();
+            this.showNotification(`📢 ${data.callerName} called out ${data.targetName} for not saying UNO! ${data.targetName} draws 2 cards.`);
         });
     }
     
@@ -321,6 +337,15 @@ class UnoMultiplayerClient {
                 cardClass += ' wild-card';
             }
 
+            // Enhanced visibility for playable/non-playable cards
+            if (this.gameState.isYourTurn) {
+                if (this.canPlayCard(card)) {
+                    cardClass += ' playable';
+                } else {
+                    cardClass += ' not-playable';
+                }
+            }
+
             cardEl.className = cardClass;
 
             // Create card content with proper UNO styling
@@ -331,15 +356,14 @@ class UnoMultiplayerClient {
             `;
 
             if (this.gameState.isYourTurn && this.canPlayCard(card)) {
-                cardEl.classList.add('playable');
-            }
-
-            if (this.gameState.isYourTurn) {
                 cardEl.addEventListener('click', () => this.playCard(index));
             }
 
             handEl.appendChild(cardEl);
         });
+
+        // Handle UNO button visibility and warning
+        this.updateUnoButton();
     }
     
     canPlayCard(card) {
@@ -406,6 +430,44 @@ class UnoMultiplayerClient {
         }, 3000);
     }
     
+    updateUnoButton() {
+        const unoButton = document.getElementById('unoButton');
+        const unoWarning = document.getElementById('unoWarning');
+        const unoCallOut = document.getElementById('unoCallOut');
+
+        // Show UNO button when player has 2 cards (before playing down to 1)
+        if (this.gameState && this.gameState.playerHand && this.gameState.playerHand.length === 2 && this.gameState.isYourTurn) {
+            unoButton.classList.remove('hidden');
+            unoWarning.classList.remove('hidden');
+        } else {
+            unoButton.classList.add('hidden');
+            unoWarning.classList.add('hidden');
+        }
+
+        // Show call-out option if any player has 1 card and hasn't called UNO
+        const hasPlayerWithOneCard = this.gameState && this.gameState.players &&
+            this.gameState.players.some(player => player.handSize === 1 && !player.calledUno && player.id !== this.socket.id);
+
+        if (hasPlayerWithOneCard) {
+            unoCallOut.classList.remove('hidden');
+        } else {
+            unoCallOut.classList.add('hidden');
+        }
+    }
+
+    callUno() {
+        this.socket.emit('callUno');
+        this.showNotification('🎯 UNO called!');
+        document.getElementById('unoButton').classList.add('hidden');
+        document.getElementById('unoWarning').classList.add('hidden');
+    }
+
+    callOutUno() {
+        this.socket.emit('callOutUno');
+        this.showNotification('📢 Called out player for not saying UNO!');
+        document.getElementById('unoCallOut').classList.add('hidden');
+    }
+
     createFloatingCards() {
         const container = document.getElementById('floatingCards');
         for (let i = 0; i < 6; i++) {
