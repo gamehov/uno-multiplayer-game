@@ -102,7 +102,7 @@ class UnoMultiplayerClient {
             this.updateGameDisplay();
             
             if (data.winner) {
-                this.showNotification(`ðŸŽ‰ ${data.winner.name} wins!`);
+                this.showNotification(`🎉 ${data.winner.name} wins!`);
             }
         });
         
@@ -226,15 +226,23 @@ class UnoMultiplayerClient {
                     <span class="text-white font-medium">${player.name}</span>
                 </div>
                 <div class="text-slate-400 text-sm">
-                    ${player.isCurrentPlayer ? 'ðŸ‘‘ Host' : 'Player'}
+                    ${player.isCurrentPlayer ? '👑 Host' : 'Player'}
                 </div>
             `;
             playersList.appendChild(playerEl);
         });
         
-        // Show start button only if enough players
+        // Show start button for host (allow solo play for testing)
         const startBtn = document.getElementById('startGameBtn');
-        startBtn.style.display = this.gameState.players.length >= 2 ? 'block' : 'none';
+        const isHost = this.gameState.players.length > 0 && this.gameState.players[0].id === this.socket.id;
+        startBtn.style.display = isHost ? 'block' : 'none';
+
+        // Update button text based on player count
+        if (this.gameState.players.length === 1) {
+            startBtn.textContent = '🚀 Start Solo Game';
+        } else {
+            startBtn.textContent = '🚀 Start Game';
+        }
     }
     
     updateGameDisplay() {
@@ -281,7 +289,7 @@ class UnoMultiplayerClient {
             playerEl.innerHTML = `
                 <div class="font-medium">${player.name}</div>
                 <div class="text-sm text-slate-400">${player.handSize} cards</div>
-                ${player.isCurrentPlayer ? '<div class="text-xs text-green-400">â–¶ Current</div>' : ''}
+                ${player.isCurrentPlayer ? '<div class="text-xs text-green-400">▶ Current</div>' : ''}
             `;
             container.appendChild(playerEl);
         });
@@ -325,8 +333,8 @@ class UnoMultiplayerClient {
     
     getCardDisplay(card) {
         if (card.type === 'number') return card.value;
-        if (card.type === 'skip') return 'âŠ˜';
-        if (card.type === 'reverse') return 'â†»';
+        if (card.type === 'skip') return '⊘';
+        if (card.type === 'reverse') return '↻';
         if (card.type === 'draw2') return '+2';
         if (card.type === 'wild') return 'W';
         if (card.type === 'wild4') return '+4';
