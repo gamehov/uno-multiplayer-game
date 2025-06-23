@@ -179,7 +179,6 @@ class UnoGame {
         // Reset UNO calling status when player goes down to 1 card
         if (player.hand.length === 1) {
             player.calledUno = false;
-            console.log(`Player ${player.name} now has 1 card, calledUno reset to false`);
         }
         
         // Handle special cards
@@ -490,13 +489,7 @@ io.on('connection', (socket) => {
         if (!game) return;
 
         // Find player with 1 card who hasn't called UNO
-        console.log('Call-out attempt by:', socket.id);
-        game.players.forEach(p => {
-            console.log(`Player ${p.name}: handSize=${p.hand.length}, calledUno=${p.calledUno}`);
-        });
-
         const targetPlayer = game.players.find(p => p.hand.length === 1 && !p.calledUno);
-        console.log('Target player found:', targetPlayer ? targetPlayer.name : 'none');
 
         if (targetPlayer) {
             // Make target player draw 2 cards
@@ -509,6 +502,9 @@ io.on('connection', (socket) => {
                 }
             }
 
+            // Mark that they've been called out (so they can't be called out again until they play)
+            targetPlayer.calledUno = true;
+
             const callerPlayer = game.players.find(p => p.id === socket.id);
 
             // Send personalized notifications to all players
@@ -519,6 +515,9 @@ io.on('connection', (socket) => {
                     gameState: game.getGameState(p.id)
                 });
             });
+        } else {
+            // No valid target found, notify the caller
+            socket.emit('error', { message: 'No player can be called out for UNO right now.' });
         }
     });
 
