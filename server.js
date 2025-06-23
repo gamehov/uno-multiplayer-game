@@ -79,6 +79,16 @@ class UnoGame {
             [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
         }
     }
+
+    shuffleDiscardIntoDeck() {
+        if (this.discardPile.length <= 1) return;
+
+        // Keep the top card, shuffle the rest back into deck
+        const topCard = this.discardPile.pop();
+        this.deck = [...this.deck, ...this.discardPile];
+        this.discardPile = [topCard];
+        this.shuffleDeck();
+    }
     
     addPlayer(playerId, playerName, socketId) {
         if (this.players.length >= this.maxPlayers) {
@@ -169,6 +179,7 @@ class UnoGame {
         // Reset UNO calling status when player goes down to 1 card
         if (player.hand.length === 1) {
             player.calledUno = false;
+            console.log(`Player ${player.name} now has 1 card, calledUno reset to false`);
         }
         
         // Handle special cards
@@ -479,7 +490,13 @@ io.on('connection', (socket) => {
         if (!game) return;
 
         // Find player with 1 card who hasn't called UNO
+        console.log('Call-out attempt by:', socket.id);
+        game.players.forEach(p => {
+            console.log(`Player ${p.name}: handSize=${p.hand.length}, calledUno=${p.calledUno}`);
+        });
+
         const targetPlayer = game.players.find(p => p.hand.length === 1 && !p.calledUno);
+        console.log('Target player found:', targetPlayer ? targetPlayer.name : 'none');
 
         if (targetPlayer) {
             // Make target player draw 2 cards
