@@ -9,56 +9,170 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            font-family: system-ui, sans-serif;
-            background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Nunito:wght@400;600;700;800&display=swap');
+
+        body {
+            margin: 0;
+            font-family: 'Nunito', system-ui, sans-serif;
+            background: radial-gradient(ellipse at center, #1a365d 0%, #2d3748 50%, #1a202c 100%);
             color: white;
             min-height: 100vh;
             touch-action: manipulation;
+            overflow-x: hidden;
         }
+
+        .uno-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 4rem;
+            background: linear-gradient(45deg, #ff4757, #ffa502, #2ed573, #3742fa, #ff4757);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
         .card {
-            width: 70px;
-            height: 105px;
-            border-radius: 8px;
+            width: 80px;
+            height: 120px;
+            border-radius: 12px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 16px;
+            font-weight: 800;
+            font-size: 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
             user-select: none;
+            border: 3px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
         }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+            pointer-events: none;
+        }
+
         .card:hover {
-            transform: translateY(-8px) scale(1.05);
+            transform: translateY(-12px) scale(1.08) rotateZ(2deg);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), 0 0 20px rgba(255,255,255,0.1);
         }
-        .card.red { background: linear-gradient(135deg, #E53E3E, #DC2626); }
-        .card.blue { background: linear-gradient(135deg, #3182CE, #2563EB); }
-        .card.green { background: linear-gradient(135deg, #38A169, #16A34A); }
-        .card.yellow { background: linear-gradient(135deg, #D69E2E, #CA8A04); }
-        .card.black { background: linear-gradient(135deg, #1F2937, #111827); }
+
+        .card.red {
+            background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .card.blue {
+            background: linear-gradient(135deg, #3742fa 0%, #2f3542 100%);
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .card.green {
+            background: linear-gradient(135deg, #2ed573 0%, #1e3799 100%);
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .card.yellow {
+            background: linear-gradient(135deg, #ffa502 0%, #ff6348 100%);
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .card.black {
+            background: linear-gradient(135deg, #2f3542 0%, #57606f 100%);
+            color: #ffa502;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            border-color: #ffa502;
+        }
         .card.playable {
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+            animation: playablePulse 1.5s ease-in-out infinite;
+            border-color: #ffd700;
+            transform: scale(1.05);
         }
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); }
-            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.9); }
+
+        @keyframes playablePulse {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4);
+                border-color: #ffd700;
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 80px rgba(255, 215, 0, 0.6);
+                border-color: #ffed4e;
+            }
         }
+
+        .card-number {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+
+        .card-symbol {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .special-card {
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+
+        .wild-card {
+            background: conic-gradient(from 0deg, #ff4757, #ffa502, #2ed573, #3742fa, #ff4757);
+            animation: wildRotate 3s linear infinite;
+        }
+
+        @keyframes wildRotate {
+            from { background: conic-gradient(from 0deg, #ff4757, #ffa502, #2ed573, #3742fa, #ff4757); }
+            to { background: conic-gradient(from 360deg, #ff4757, #ffa502, #2ed573, #3742fa, #ff4757); }
+        }
+
         .floating-card {
             position: absolute;
-            width: 50px;
-            height: 75px;
-            background: linear-gradient(45deg, #E53E3E, #3182CE);
-            border-radius: 6px;
-            opacity: 0.1;
-            animation: float 15s linear infinite;
+            width: 40px;
+            height: 60px;
+            border-radius: 8px;
+            opacity: 0.05;
+            animation: float 20s linear infinite;
+            pointer-events: none;
         }
+
+        .floating-card:nth-child(odd) {
+            background: linear-gradient(45deg, #ff4757, #3742fa);
+            animation-duration: 25s;
+        }
+
+        .floating-card:nth-child(even) {
+            background: linear-gradient(45deg, #2ed573, #ffa502);
+            animation-duration: 18s;
+        }
+
         @keyframes float {
-            from { transform: translateY(100vh) rotate(0deg); }
-            to { transform: translateY(-100px) rotate(360deg); }
+            from {
+                transform: translateY(100vh) rotate(0deg) translateX(0px);
+                opacity: 0;
+            }
+            10% { opacity: 0.05; }
+            90% { opacity: 0.05; }
+            to {
+                transform: translateY(-100px) rotate(360deg) translateX(100px);
+                opacity: 0;
+            }
         }
         .hidden { display: none !important; }
         .player-hand {
@@ -70,26 +184,95 @@
             max-width: 100%;
             overflow-x: auto;
         }
+        .game-background {
+            background:
+                radial-gradient(circle at 20% 80%, rgba(255, 71, 87, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(55, 66, 250, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(46, 213, 115, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, #1a365d 0%, #2d3748 50%, #1a202c 100%);
+        }
+
+        .card-stack-effect {
+            position: relative;
+        }
+
+        .card-stack-effect::before,
+        .card-stack-effect::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            border-radius: inherit;
+            z-index: -1;
+        }
+
+        .card-stack-effect::before {
+            transform: translate(-2px, -2px) rotate(-1deg);
+            opacity: 0.7;
+        }
+
+        .card-stack-effect::after {
+            transform: translate(-4px, -4px) rotate(-2deg);
+            opacity: 0.4;
+        }
+
         @media (max-width: 640px) {
             .card {
-                width: 60px;
-                height: 90px;
-                font-size: 14px;
+                width: 65px;
+                height: 95px;
+            }
+
+            .card-number {
+                font-size: 18px;
+            }
+
+            .card-symbol {
+                font-size: 10px;
+            }
+
+            .uno-title {
+                font-size: 3rem;
+            }
+
+            .player-hand {
+                gap: 0.125rem;
+                padding: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                width: 55px;
+                height: 80px;
+            }
+
+            .card-number {
+                font-size: 16px;
+            }
+
+            .card-symbol {
+                font-size: 8px;
             }
         }
     </style>
 </head>
-<body>
+<body class="game-background">
     <!-- Floating cards background -->
     <div id="floatingCards" class="fixed inset-0 pointer-events-none overflow-hidden z-0"></div>
     
     <!-- Home Screen -->
     <div id="homeScreen" class="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
         <div class="text-center mb-8">
-            <h1 class="text-6xl font-bold bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500 bg-clip-text text-transparent mb-2">
-                UNO
-            </h1>
-            <p class="text-slate-400 text-lg">Play with friends online in real-time</p>
+            <h1 class="uno-title mb-4">UNO</h1>
+            <div class="flex justify-center gap-2 mb-4">
+                <div class="card red" style="width: 40px; height: 60px; font-size: 14px;">U</div>
+                <div class="card yellow" style="width: 40px; height: 60px; font-size: 14px;">N</div>
+                <div class="card green" style="width: 40px; height: 60px; font-size: 14px;">O</div>
+                <div class="card blue" style="width: 40px; height: 60px; font-size: 14px;">!</div>
+            </div>
+            <p class="text-slate-300 text-lg font-semibold">🎮 Play with friends online in real-time</p>
+            <p class="text-slate-400 text-sm">The classic card game, now multiplayer!</p>
         </div>
         
         <div class="w-full max-w-md space-y-6">
@@ -106,7 +289,7 @@
                 disabled
                 class="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:from-slate-600 disabled:to-slate-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
             >
-                ðŸŽ® Create New Game
+                🎮 Create New Game
             </button>
             
             <div class="flex gap-3">
@@ -128,12 +311,12 @@
         </div>
         
         <div class="mt-8 bg-slate-800 rounded-2xl p-6 max-w-md">
-            <h3 class="text-lg font-semibold mb-3">ðŸŒ Multiplayer Features</h3>
+            <h3 class="text-lg font-semibold mb-3">🌐 Multiplayer Features</h3>
             <ul class="text-slate-400 text-sm space-y-1">
-                <li>â€¢ Play with 2-4 friends in real-time</li>
-                <li>â€¢ Share game ID to invite friends</li>
-                <li>â€¢ Full UNO rules and special cards</li>
-                <li>â€¢ Mobile-optimized for all devices</li>
+                <li>• Play with 2-4 friends in real-time</li>
+                <li>• Share game ID to invite friends</li>
+                <li>• Full UNO rules and special cards</li>
+                <li>• Mobile-optimized for all devices</li>
             </ul>
         </div>
     </div>
@@ -146,7 +329,7 @@
                 <div class="bg-slate-800 rounded-lg px-4 py-2 inline-block">
                     <span class="text-slate-400">Game ID: </span>
                     <span id="gameIdDisplay" class="text-white font-mono text-lg"></span>
-                    <button id="copyGameId" class="ml-2 text-blue-400 hover:text-blue-300">ðŸ“‹</button>
+                    <button id="copyGameId" class="ml-2 text-blue-400 hover:text-blue-300">📋</button>
                 </div>
             </div>
             
@@ -162,14 +345,14 @@
                     id="startGameBtn" 
                     class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200"
                 >
-                    ðŸš€ Start Game
+                    🚀 Start Game
                 </button>
                 
                 <button 
                     id="leaveLobbyBtn" 
                     class="block mx-auto text-slate-400 hover:text-white transition-colors"
                 >
-                    â† Leave Lobby
+                    ← Leave Lobby
                 </button>
             </div>
         </div>
@@ -182,7 +365,7 @@
             <div class="bg-slate-800 p-4">
                 <div class="flex items-center justify-between">
                     <button id="backToLobbyBtn" class="text-slate-400 hover:text-white transition-colors">
-                        â† Back
+                        ← Back
                     </button>
                     <div class="text-center">
                         <div id="gameMessage" class="text-white font-semibold">Waiting for game to start...</div>
@@ -203,20 +386,32 @@
             </div>
             
             <!-- Center play area -->
-            <div class="flex-1 flex items-center justify-center p-4">
-                <div class="flex items-center gap-8">
+            <div class="flex-1 flex items-center justify-center p-4 relative">
+                <!-- Animated background elements -->
+                <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-br from-red-500/10 to-transparent rounded-full animate-pulse"></div>
+                    <div class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full animate-pulse" style="animation-delay: 1s;"></div>
+                    <div class="absolute top-1/2 right-1/3 w-20 h-20 bg-gradient-to-br from-green-500/10 to-transparent rounded-full animate-pulse" style="animation-delay: 2s;"></div>
+                </div>
+
+                <div class="flex items-center gap-12 relative z-10">
                     <div class="text-center">
-                        <div id="drawPile" class="card black mb-2 cursor-pointer hover:scale-105">
-                            DRAW
+                        <div id="drawPile" class="card black mb-3 cursor-pointer relative group card-stack-effect">
+                            <div class="card-number">UNO</div>
+                            <div class="card-symbol">DRAW</div>
+                            <div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-12"></div>
                         </div>
-                        <div class="text-slate-400 text-sm">Draw Pile</div>
+                        <div class="text-slate-300 text-sm font-semibold">📚 Draw Pile</div>
+                        <div class="text-slate-500 text-xs">Click to draw</div>
                     </div>
-                    
+
                     <div class="text-center">
-                        <div id="topCard" class="card red mb-2">
-                            ?
+                        <div id="topCard" class="card red mb-3 relative">
+                            <div class="card-number">?</div>
+                            <div class="card-symbol">TOP</div>
                         </div>
-                        <div class="text-slate-400 text-sm">Top Card</div>
+                        <div class="text-slate-300 text-sm font-semibold">🎯 Current Card</div>
+                        <div class="text-slate-500 text-xs">Match color or number</div>
                     </div>
                 </div>
             </div>
