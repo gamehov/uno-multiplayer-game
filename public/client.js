@@ -379,15 +379,16 @@ class UnoMultiplayerClient {
             }
 
             // Enhanced visibility for playable/non-playable cards
-            if (this.gameState.isYourTurn) {
+            // Force check if it's really your turn by checking current player
+            const currentPlayer = this.gameState.players.find(p => p.isCurrentPlayer);
+            const isReallyYourTurn = currentPlayer && currentPlayer.id === this.socket.id;
+
+            if (isReallyYourTurn) {
                 if (this.canPlayCard(card)) {
                     cardClass += ' playable';
-                    console.log('Card is playable:', card, 'for player:', this.socket.id);
                 } else {
                     cardClass += ' not-playable';
                 }
-            } else {
-                console.log('Not your turn, isYourTurn:', this.gameState.isYourTurn, 'for player:', this.socket.id);
             }
 
             cardEl.className = cardClass;
@@ -399,7 +400,8 @@ class UnoMultiplayerClient {
                 <div class="card-symbol">${cardDisplay.symbol}</div>
             `;
 
-            if (this.gameState.isYourTurn && this.canPlayCard(card)) {
+            // Use the same turn check for click handlers
+            if (isReallyYourTurn && this.canPlayCard(card)) {
                 cardEl.addEventListener('click', () => this.playCard(index));
             }
 
@@ -514,17 +516,17 @@ class UnoMultiplayerClient {
         }
 
         // Show call-out option if any player has 1 card and hasn't called UNO
-        const hasPlayerWithOneCard = this.gameState && this.gameState.players &&
+        // Only show if it's not your turn (you can't call out during your own turn)
+        const currentPlayer = this.gameState.players.find(p => p.isCurrentPlayer);
+        const isMyTurn = currentPlayer && currentPlayer.id === this.socket.id;
+
+        const hasPlayerWithOneCard = !isMyTurn && this.gameState && this.gameState.players &&
             this.gameState.players.some(player => {
-                const canCallOut = player.handSize === 1 && !player.calledUno && player.id !== this.socket.id;
-                console.log('Player check for call-out:', player.name, 'handSize:', player.handSize, 'calledUno:', player.calledUno, 'canCallOut:', canCallOut);
-                return canCallOut;
+                return player.handSize === 1 && !player.calledUno && player.id !== this.socket.id;
             });
 
-        console.log('hasPlayerWithOneCard:', hasPlayerWithOneCard);
         if (hasPlayerWithOneCard) {
             unoCallOut.classList.remove('hidden');
-            console.log('Showing call-out button');
         } else {
             unoCallOut.classList.add('hidden');
         }
