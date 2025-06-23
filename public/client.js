@@ -46,6 +46,7 @@ class UnoMultiplayerClient {
         // UNO functionality
         document.getElementById('unoButton').addEventListener('click', () => this.callUno());
         document.getElementById('callOutButton').addEventListener('click', () => this.callOutUno());
+        document.getElementById('newRoundBtn').addEventListener('click', () => this.startNewRound());
 
         // Color picker
         document.querySelectorAll('.color-btn').forEach(btn => {
@@ -103,16 +104,38 @@ class UnoMultiplayerClient {
         
         this.socket.on('cardPlayed', (data) => {
             this.gameState = data.gameState;
+
+            // Track last played card for display
+            this.lastPlayedCard = {
+                playerId: data.playerId,
+                card: data.card
+            };
+
+            // Show notification about the played card
+            const player = this.gameState.players.find(p => p.id === data.playerId);
+            if (player && data.playerId !== this.socket.id) {
+                this.showNotification(`${player.name} played ${this.getCardDisplayText(data.card)}`);
+            }
+
             this.updateGameDisplay();
-            
-            if (data.winner) {
-                this.showNotification(`🎉 ${data.winner.name} wins!`);
+
+            if (data.roundResult) {
+                this.showRoundEnd(data.roundResult);
             }
         });
         
         this.socket.on('cardDrawn', (data) => {
             this.gameState = data.gameState;
             this.updateGameDisplay();
+
+            // Show notification about drawn card
+            if (data.playerId === this.socket.id) {
+                if (data.gameState.canPlayDrawnCard) {
+                    this.showNotification('✅ You drew a playable card! You can play it now.');
+                } else {
+                    this.showNotification('📤 Card drawn. Turn passed to next player.');
+                }
+            }
         });
         
         this.socket.on('error', (data) => {
@@ -304,21 +327,39 @@ class UnoMultiplayerClient {
     updatePlayersInfo() {
         const playersInfoEl = document.getElementById('playersInfo');
         playersInfoEl.innerHTML = '';
-        
+
         const container = document.createElement('div');
         container.className = 'flex justify-center gap-4 flex-wrap';
-        
+
         this.gameState.players.forEach(player => {
             const playerEl = document.createElement('div');
-            playerEl.className = `text-center ${player.isCurrentPlayer ? 'text-green-400' : 'text-white'}`;
+            const isCurrentPlayer = player.isCurrentPlayer;
+            const isYou = player.id === this.socket.id;
+
+            playerEl.className = `text-center p-3 rounded-lg border-2 transition-all ${
+                isCurrentPlayer ? 'border-green-400 bg-green-900/20 text-green-400' :
+                'border-slate-600 bg-slate-800 text-white'
+            }`;
+
+            // Show UNO status
+            const unoStatus = player.handSize === 1 ?
+                (player.calledUno ? '🎯 UNO!' : '⚠️ Forgot UNO!') : '';
+
             playerEl.innerHTML = `
-                <div class="font-medium">${player.name}</div>
-                <div class="text-sm text-slate-400">${player.handSize} cards</div>
-                ${player.isCurrentPlayer ? '<div class="text-xs text-green-400">▶ Current</div>' : ''}
+                <div class="font-bold text-lg">${player.name}${isYou ? ' (You)' : ''}</div>
+                <div class="text-sm opacity-80">Score: ${player.score || 0}</div>
+                <div class="flex items-center justify-center gap-2 mt-2">
+                    <div class="text-lg font-bold">${player.handSize}</div>
+                    <div class="text-sm">cards</div>
+                </div>
+                ${unoStatus ? `<div class="text-xs mt-1 font-bold">${unoStatus}</div>` : ''}
+                ${isCurrentPlayer ? '<div class="text-xs mt-1 animate-pulse">▶ Playing...</div>' : ''}
+                ${this.lastPlayedCard && this.lastPlayedCard.playerId === player.id ?
+                    `<div class="text-xs mt-1 text-blue-400">Last played: ${this.getCardDisplayText(this.lastPlayedCard.card)}</div>` : ''}
             `;
             container.appendChild(playerEl);
         });
-        
+
         playersInfoEl.appendChild(container);
     }
     
@@ -409,6 +450,31 @@ class UnoMultiplayerClient {
         };
         return colorSymbols[color] || '●';
     }
+
+    getCardDisplayText(card) {
+        const colorNames = {
+            'red': 'Red',
+            'blue': 'Blue',
+            'green': 'Green',
+            'yellow': 'Yellow',
+            'black': 'Wild'
+        };
+
+        if (card.type === 'number') {
+            return `${colorNames[card.color]} ${card.value}`;
+        } else if (card.type === 'skip') {
+            return `${colorNames[card.color]} Skip`;
+        } else if (card.type === 'reverse') {
+            return `${colorNames[card.color]} Reverse`;
+        } else if (card.type === 'draw2') {
+            return `${colorNames[card.color]} +2`;
+        } else if (card.type === 'wild') {
+            return 'Wild Card';
+        } else if (card.type === 'wild4') {
+            return 'Wild +4';
+        }
+        return 'Unknown Card';
+    }
     
     showColorPicker() {
         document.getElementById('colorPicker').classList.remove('hidden');
@@ -466,6 +532,36 @@ class UnoMultiplayerClient {
         this.socket.emit('callOutUno');
         this.showNotification('📢 Called out player for not saying UNO!');
         document.getElementById('unoCallOut').classList.add('hidden');
+    }
+
+    showRoundEnd(roundResult) {
+        const modal = document.getElementById('roundEndModal');
+        const winnerEl = document.getElementById('roundWinner');
+        const pointsEl = document.getElementById('roundPoints');
+        const scoresEl = document.getElementById('scoresList');
+
+        winnerEl.textContent = `${roundResult.winner.name} wins this round!`;
+        pointsEl.textContent = `+${roundResult.points} points`;
+
+        // Display scores
+        scoresEl.innerHTML = '';
+        roundResult.scores.forEach(score => {
+            const scoreEl = document.createElement('div');
+            scoreEl.className = 'flex justify-between text-white';
+            scoreEl.innerHTML = `
+                <span>${score.name}</span>
+                <span class="font-bold">${score.score}</span>
+            `;
+            scoresEl.appendChild(scoreEl);
+        });
+
+        modal.classList.remove('hidden');
+    }
+
+    startNewRound() {
+        document.getElementById('roundEndModal').classList.add('hidden');
+        this.socket.emit('startGame');
+        this.showNotification('🚀 Starting new round!');
     }
 
     createFloatingCards() {
