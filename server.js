@@ -91,7 +91,8 @@ class UnoGame {
             socketId: socketId,
             hand: [],
             isReady: false,
-            calledUno: false
+            calledUno: false,
+            score: 0
         };
         
         this.players.push(player);
@@ -164,6 +165,11 @@ class UnoGame {
         // Remove card from player's hand
         player.hand.splice(cardIndex, 1);
         this.discardPile.push(card);
+
+        // Reset UNO calling status when player goes down to 1 card
+        if (player.hand.length === 1) {
+            player.calledUno = false;
+        }
         
         // Handle special cards
         let nextPlayerSkipped = false;
@@ -206,12 +212,15 @@ class UnoGame {
         }
         
         // Check for winner
-        const winner = player.hand.length === 0 ? player : null;
-        
+        let roundResult = null;
+        if (player.hand.length === 0) {
+            roundResult = this.endRound(player);
+        }
+
         return {
             success: true,
             card,
-            winner,
+            roundResult,
             nextPlayer: this.players[this.currentPlayerIndex],
             cardsDrawn
         };
@@ -222,26 +231,74 @@ class UnoGame {
         if (!player || this.players[this.currentPlayerIndex].id !== playerId) {
             return { success: false, error: 'Not your turn' };
         }
-        
+
         if (this.deck.length === 0) {
             return { success: false, error: 'Deck is empty' };
         }
-        
+
         const drawnCard = this.deck.pop();
         player.hand.push(drawnCard);
-        
-        // Move to next player
-        this.nextPlayer();
-        
+
+        // Check if drawn card can be played
+        const canPlayDrawnCard = this.canPlayCard(drawnCard);
+
+        // Only move to next player if drawn card cannot be played
+        if (!canPlayDrawnCard) {
+            this.nextPlayer();
+        }
+
         return {
             success: true,
             card: drawnCard,
+            canPlayDrawnCard,
             nextPlayer: this.players[this.currentPlayerIndex]
         };
     }
     
     nextPlayer() {
         this.currentPlayerIndex = (this.currentPlayerIndex + this.direction + this.players.length) % this.players.length;
+    }
+
+    calculateCardPoints(card) {
+        if (card.type === 'number') return card.value;
+        if (card.type === 'skip' || card.type === 'reverse' || card.type === 'draw2') return 20;
+        if (card.type === 'wild' || card.type === 'wild4') return 50;
+        return 0;
+    }
+
+    calculateScore(winner) {
+        let points = 0;
+        this.players.forEach(player => {
+            if (player.id !== winner.id) {
+                player.hand.forEach(card => {
+                    points += this.calculateCardPoints(card);
+                });
+            }
+        });
+        return points;
+    }
+
+    endRound(winner) {
+        const points = this.calculateScore(winner);
+        winner.score += points;
+
+        // Reset for next round
+        this.players.forEach(player => {
+            player.hand = [];
+            player.calledUno = false;
+        });
+        this.deck = [];
+        this.discardPile = [];
+        this.createDeck();
+        this.shuffleDeck();
+        this.gameStarted = false;
+        this.currentPlayerIndex = 0;
+
+        return {
+            winner,
+            points,
+            scores: this.players.map(p => ({ name: p.name, score: p.score }))
+        };
     }
     
     getGameState(playerId) {
@@ -254,7 +311,9 @@ class UnoGame {
                 id: p.id,
                 name: p.name,
                 handSize: p.hand.length,
-                isCurrentPlayer: this.players[this.currentPlayerIndex].id === p.id
+                isCurrentPlayer: this.players[this.currentPlayerIndex].id === p.id,
+                calledUno: p.calledUno || false,
+                score: p.score || 0
             })),
             playerHand: player ? player.hand : [],
             topCard,
@@ -360,7 +419,7 @@ io.on('connection', (socket) => {
                 io.to(player.socketId).emit('cardPlayed', {
                     playerId: socket.id,
                     card: result.card,
-                    winner: result.winner,
+                    roundResult: result.roundResult,
                     gameState: game.getGameState(player.id)
                 });
             });
