@@ -90,7 +90,8 @@ class UnoGame {
             name: playerName,
             socketId: socketId,
             hand: [],
-            isReady: false
+            isReady: false,
+            calledUno: false
         };
         
         this.players.push(player);
@@ -366,7 +367,58 @@ io.on('connection', (socket) => {
             socket.emit('error', { message: result.error });
         }
     });
-    
+
+    socket.on('callUno', () => {
+        const playerData = players.get(socket.id);
+        if (!playerData) return;
+
+        const game = games.get(playerData.gameId);
+        if (!game) return;
+
+        const player = game.players.find(p => p.id === socket.id);
+        if (player) {
+            player.calledUno = true;
+
+            // Notify all players
+            io.to(playerData.gameId).emit('unoCall', {
+                playerName: player.name,
+                gameState: game.getGameState(socket.id)
+            });
+        }
+    });
+
+    socket.on('callOutUno', () => {
+        const playerData = players.get(socket.id);
+        if (!playerData) return;
+
+        const game = games.get(playerData.gameId);
+        if (!game) return;
+
+        // Find player with 1 card who hasn't called UNO
+        const targetPlayer = game.players.find(p => p.hand.length === 1 && !p.calledUno);
+
+        if (targetPlayer) {
+            // Make target player draw 2 cards
+            for (let i = 0; i < 2; i++) {
+                if (game.deck.length === 0) {
+                    game.shuffleDiscardIntoDeck();
+                }
+                if (game.deck.length > 0) {
+                    targetPlayer.hand.push(game.deck.pop());
+                }
+            }
+
+            const callerPlayer = game.players.find(p => p.id === socket.id);
+
+            // Notify all players
+            io.to(playerData.gameId).emit('unoCallOut', {
+                callerName: callerPlayer.name,
+                targetName: targetPlayer.name,
+                gameState: game.getGameState(socket.id)
+            });
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('Player disconnected:', socket.id);
         
