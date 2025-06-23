@@ -107,13 +107,21 @@ class UnoGame {
     
     startGame() {
         if (this.players.length < 1) return false; // Allow solo play for testing
-        
+
+        // Shuffle deck before dealing
+        this.shuffleDeck();
+
         // Deal 7 cards to each player
-        this.players.forEach(player => {
+        this.players.forEach((player, playerIndex) => {
             player.hand = [];
             for (let i = 0; i < 7; i++) {
-                player.hand.push(this.deck.pop());
+                if (this.deck.length > 0) {
+                    player.hand.push(this.deck.pop());
+                }
             }
+            // Reset UNO calling status
+            player.calledUno = false;
+            console.log(`Player ${player.name} dealt ${player.hand.length} cards`);
         });
         
         // Find a number card for starting
@@ -278,9 +286,12 @@ io.on('connection', (socket) => {
             gameState: game.getGameState(playerId)
         });
         
-        io.to(gameId).emit('playerJoined', {
-            playerName: data.playerName,
-            gameState: game.getGameState(playerId)
+        // Send updated lobby state to all players
+        game.players.forEach(player => {
+            io.to(player.socketId).emit('playerJoined', {
+                playerName: data.playerName,
+                gameState: game.getGameState(player.id)
+            });
         });
     });
     
@@ -307,9 +318,12 @@ io.on('connection', (socket) => {
             gameState: game.getGameState(playerId)
         });
         
-        io.to(data.gameId).emit('playerJoined', {
-            playerName: data.playerName,
-            gameState: game.getGameState(playerId)
+        // Send updated lobby state to all players
+        game.players.forEach(player => {
+            io.to(player.socketId).emit('playerJoined', {
+                playerName: data.playerName,
+                gameState: game.getGameState(player.id)
+            });
         });
     });
     
@@ -322,8 +336,11 @@ io.on('connection', (socket) => {
         
         const success = game.startGame();
         if (success) {
-            io.to(playerData.gameId).emit('gameStarted', {
-                gameState: game.getGameState(socket.id)
+            // Send personalized game state to each player
+            game.players.forEach(player => {
+                io.to(player.socketId).emit('gameStarted', {
+                    gameState: game.getGameState(player.id)
+                });
             });
         }
     });
@@ -338,11 +355,14 @@ io.on('connection', (socket) => {
         const result = game.playCard(socket.id, data.cardIndex, data.chosenColor);
         
         if (result.success) {
-            io.to(playerData.gameId).emit('cardPlayed', {
-                playerId: socket.id,
-                card: result.card,
-                winner: result.winner,
-                gameState: game.getGameState(socket.id)
+            // Send personalized game state to each player
+            game.players.forEach(player => {
+                io.to(player.socketId).emit('cardPlayed', {
+                    playerId: socket.id,
+                    card: result.card,
+                    winner: result.winner,
+                    gameState: game.getGameState(player.id)
+                });
             });
         } else {
             socket.emit('error', { message: result.error });
@@ -359,9 +379,12 @@ io.on('connection', (socket) => {
         const result = game.drawCard(socket.id);
         
         if (result.success) {
-            io.to(playerData.gameId).emit('cardDrawn', {
-                playerId: socket.id,
-                gameState: game.getGameState(socket.id)
+            // Send personalized game state to each player
+            game.players.forEach(player => {
+                io.to(player.socketId).emit('cardDrawn', {
+                    playerId: socket.id,
+                    gameState: game.getGameState(player.id)
+                });
             });
         } else {
             socket.emit('error', { message: result.error });
@@ -379,10 +402,12 @@ io.on('connection', (socket) => {
         if (player) {
             player.calledUno = true;
 
-            // Notify all players
-            io.to(playerData.gameId).emit('unoCall', {
-                playerName: player.name,
-                gameState: game.getGameState(socket.id)
+            // Send personalized notifications to all players
+            game.players.forEach(p => {
+                io.to(p.socketId).emit('unoCall', {
+                    playerName: player.name,
+                    gameState: game.getGameState(p.id)
+                });
             });
         }
     });
@@ -410,11 +435,13 @@ io.on('connection', (socket) => {
 
             const callerPlayer = game.players.find(p => p.id === socket.id);
 
-            // Notify all players
-            io.to(playerData.gameId).emit('unoCallOut', {
-                callerName: callerPlayer.name,
-                targetName: targetPlayer.name,
-                gameState: game.getGameState(socket.id)
+            // Send personalized notifications to all players
+            game.players.forEach(p => {
+                io.to(p.socketId).emit('unoCallOut', {
+                    callerName: callerPlayer.name,
+                    targetName: targetPlayer.name,
+                    gameState: game.getGameState(p.id)
+                });
             });
         }
     });
