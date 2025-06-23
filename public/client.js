@@ -382,9 +382,12 @@ class UnoMultiplayerClient {
             if (this.gameState.isYourTurn) {
                 if (this.canPlayCard(card)) {
                     cardClass += ' playable';
+                    console.log('Card is playable:', card, 'for player:', this.socket.id);
                 } else {
                     cardClass += ' not-playable';
                 }
+            } else {
+                console.log('Not your turn, isYourTurn:', this.gameState.isYourTurn, 'for player:', this.socket.id);
             }
 
             cardEl.className = cardClass;
@@ -512,10 +515,16 @@ class UnoMultiplayerClient {
 
         // Show call-out option if any player has 1 card and hasn't called UNO
         const hasPlayerWithOneCard = this.gameState && this.gameState.players &&
-            this.gameState.players.some(player => player.handSize === 1 && !player.calledUno && player.id !== this.socket.id);
+            this.gameState.players.some(player => {
+                const canCallOut = player.handSize === 1 && !player.calledUno && player.id !== this.socket.id;
+                console.log('Player check for call-out:', player.name, 'handSize:', player.handSize, 'calledUno:', player.calledUno, 'canCallOut:', canCallOut);
+                return canCallOut;
+            });
 
+        console.log('hasPlayerWithOneCard:', hasPlayerWithOneCard);
         if (hasPlayerWithOneCard) {
             unoCallOut.classList.remove('hidden');
+            console.log('Showing call-out button');
         } else {
             unoCallOut.classList.add('hidden');
         }
