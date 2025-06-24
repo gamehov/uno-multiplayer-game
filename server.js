@@ -492,8 +492,8 @@ io.on('connection', (socket) => {
         const targetPlayer = game.players.find(p => p.hand.length === 1 && !p.calledUno);
 
         if (targetPlayer) {
-            // Make target player draw 2 cards
-            for (let i = 0; i < 2; i++) {
+            // Make target player draw 4 cards (penalty for forgetting to call UNO)
+            for (let i = 0; i < 4; i++) {
                 if (game.deck.length === 0) {
                     game.shuffleDiscardIntoDeck();
                 }
