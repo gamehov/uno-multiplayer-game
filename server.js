@@ -176,9 +176,19 @@ class UnoGame {
         player.hand.splice(cardIndex, 1);
         this.discardPile.push(card);
 
-        // Reset UNO calling status when player goes down to 1 card
-        if (player.hand.length === 1) {
+        // Reset UNO calling status when player plays a card (they can be called out again next time)
+        if (player.hand.length > 1) {
             player.calledUno = false;
+        }
+
+        // When player goes down to 1 card, they need to call UNO
+        // Don't automatically reset calledUno - let them call it or be called out
+        if (player.hand.length === 1) {
+            // Only reset if they haven't called UNO yet (first time going to 1 card)
+            // If they already called UNO, keep it true
+            if (!player.hasOwnProperty('calledUno')) {
+                player.calledUno = false;
+            }
         }
         
         // Handle special cards
@@ -488,8 +498,12 @@ io.on('connection', (socket) => {
         const game = games.get(playerData.gameId);
         if (!game) return;
 
-        // Find player with 1 card who hasn't called UNO
-        const targetPlayer = game.players.find(p => p.hand.length === 1 && !p.calledUno);
+        // Find player with 1 card who hasn't called UNO and hasn't been called out yet
+        const targetPlayer = game.players.find(p =>
+            p.hand.length === 1 &&
+            !p.calledUno &&
+            p.id !== socket.id // Can't call out yourself
+        );
 
         if (targetPlayer) {
             // Make target player draw 4 cards (penalty for forgetting to call UNO)
