@@ -111,6 +111,9 @@ class UnoMultiplayerClient {
                 card: data.card
             };
 
+            // Add animation for card play
+            this.animateCardPlay(data.card, data.playerId);
+
             // Show notification about the played card
             const player = this.gameState.players.find(p => p.id === data.playerId);
             if (player && data.playerId !== this.socket.id) {
@@ -126,6 +129,10 @@ class UnoMultiplayerClient {
         
         this.socket.on('cardDrawn', (data) => {
             this.gameState = data.gameState;
+
+            // Add animation for card draw
+            this.animateCardDraw(data.playerId);
+
             this.updateGameDisplay();
 
             // Show notification about drawn card
@@ -134,6 +141,11 @@ class UnoMultiplayerClient {
                     this.showNotification('✅ You drew a playable card! You can play it now.');
                 } else {
                     this.showNotification('📤 Card drawn. Turn passed to next player.');
+                }
+            } else {
+                const player = this.gameState.players.find(p => p.id === data.playerId);
+                if (player) {
+                    this.showNotification(`📤 ${player.name} drew a card`);
                 }
             }
         });
@@ -548,7 +560,11 @@ class UnoMultiplayerClient {
 
         if (playerWithOneCard) {
             unoCallOut.classList.remove('hidden');
-            unoCallOut.textContent = `📢 ${playerWithOneCard.name} forgot to call UNO!`;
+            // Update only the text, not the entire div (to preserve the button)
+            const callOutText = unoCallOut.querySelector('.text-red-300');
+            if (callOutText) {
+                callOutText.textContent = `📢 ${playerWithOneCard.name} forgot to call UNO!`;
+            }
         } else {
             unoCallOut.classList.add('hidden');
         }
@@ -607,6 +623,72 @@ class UnoMultiplayerClient {
             card.style.animationDuration = (Math.random() * 10 + 10) + 's';
             container.appendChild(card);
         }
+    }
+
+    animateCardPlay(card, playerId) {
+        // Animate the discard pile to show a card being played
+        const discardPile = document.getElementById('discardPile');
+        if (discardPile) {
+            discardPile.classList.add('card-pulse-animation');
+            setTimeout(() => {
+                discardPile.classList.remove('card-pulse-animation');
+            }, 300);
+        }
+
+        // If it's your own card, animate it from your hand
+        if (playerId === this.socket.id) {
+            const playerHand = document.getElementById('playerHand');
+            if (playerHand) {
+                const cards = playerHand.querySelectorAll('.card');
+                if (cards.length > 0) {
+                    const lastCard = cards[cards.length - 1];
+                    lastCard.classList.add('card-play-animation');
+                    setTimeout(() => {
+                        lastCard.remove();
+                    }, 500);
+                }
+            }
+        }
+    }
+
+    animateCardDraw(playerId) {
+        // Animate the draw pile
+        const drawPile = document.getElementById('drawPile');
+        if (drawPile) {
+            drawPile.classList.add('card-pulse-animation');
+            setTimeout(() => {
+                drawPile.classList.remove('card-pulse-animation');
+            }, 300);
+        }
+
+        // If it's your own draw, animate a new card appearing in your hand
+        if (playerId === this.socket.id) {
+            setTimeout(() => {
+                const playerHand = document.getElementById('playerHand');
+                if (playerHand) {
+                    const cards = playerHand.querySelectorAll('.card');
+                    if (cards.length > 0) {
+                        const newCard = cards[cards.length - 1];
+                        newCard.classList.add('card-draw-animation');
+                        setTimeout(() => {
+                            newCard.classList.remove('card-draw-animation');
+                        }, 600);
+                    }
+                }
+            }, 100);
+        }
+    }
+
+    getCardDisplayText(card) {
+        const colorEmojis = {
+            'red': '🔴',
+            'blue': '🔵',
+            'green': '🟢',
+            'yellow': '🟡',
+            'black': '⚫'
+        };
+
+        return `${colorEmojis[card.color] || ''} ${card.value}`;
     }
 }
 
