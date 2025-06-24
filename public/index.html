@@ -133,6 +133,58 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
+        /* Card animations */
+        @keyframes cardDraw {
+            0% {
+                transform: translateX(-100px) scale(0.8);
+                opacity: 0;
+            }
+            50% {
+                transform: translateX(-50px) scale(0.9);
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes cardPlay {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-30px) scale(1.1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-100px) scale(0.8);
+                opacity: 0;
+            }
+        }
+
+        @keyframes cardPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .card-draw-animation {
+            animation: cardDraw 0.6s ease-out;
+        }
+
+        .card-play-animation {
+            animation: cardPlay 0.5s ease-in;
+        }
+
+        .card-pulse-animation {
+            animation: cardPulse 0.3s ease-in-out;
+        }
+
         @keyframes playablePulse {
             0%, 100% {
                 box-shadow:
