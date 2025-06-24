@@ -151,7 +151,7 @@ class UnoMultiplayerClient {
         this.socket.on('unoCallOut', (data) => {
             this.gameState = data.gameState;
             this.updateGameDisplay();
-            this.showNotification(`📢 ${data.callerName} called out ${data.targetName} for not saying UNO! ${data.targetName} draws 2 cards.`);
+            this.showNotification(`📢 ${data.callerName} called out ${data.targetName} for not saying UNO! ${data.targetName} draws 4 cards.`);
         });
     }
     
@@ -345,9 +345,29 @@ class UnoMultiplayerClient {
             const unoStatus = player.handSize === 1 ?
                 (player.calledUno ? '🎯 UNO!' : '⚠️ Forgot UNO!') : '';
 
+            // Create card backs display for other players
+            let cardBacksHtml = '';
+            if (!isYou && player.handSize > 0) {
+                cardBacksHtml = '<div class="flex justify-center gap-1 mt-2 mb-2">';
+                const maxCardsToShow = Math.min(player.handSize, 8); // Show max 8 cards to avoid overflow
+                for (let i = 0; i < maxCardsToShow; i++) {
+                    cardBacksHtml += `
+                        <div class="w-6 h-9 bg-gradient-to-br from-red-600 to-red-800 rounded border border-red-400 flex items-center justify-center text-white text-xs font-bold shadow-md"
+                             style="margin-left: ${i > 0 ? '-8px' : '0'}; z-index: ${maxCardsToShow - i};">
+                            UNO
+                        </div>
+                    `;
+                }
+                if (player.handSize > 8) {
+                    cardBacksHtml += `<div class="text-xs text-gray-400 ml-2">+${player.handSize - 8}</div>`;
+                }
+                cardBacksHtml += '</div>';
+            }
+
             playerEl.innerHTML = `
                 <div class="font-bold text-lg">${player.name}${isYou ? ' (You)' : ''}</div>
                 <div class="text-sm opacity-80">Score: ${player.score || 0}</div>
+                ${cardBacksHtml}
                 <div class="flex items-center justify-center gap-2 mt-2">
                     <div class="text-lg font-bold">${player.handSize}</div>
                     <div class="text-sm">cards</div>
@@ -507,9 +527,10 @@ class UnoMultiplayerClient {
         const unoCallOut = document.getElementById('unoCallOut');
 
         // Show UNO button when player has 2 cards (before playing down to 1)
-        if (this.gameState && this.gameState.playerHand && this.gameState.playerHand.length === 2 && this.gameState.isYourTurn) {
+        if (this.gameState && this.gameState.playerHand && this.gameState.playerHand.length === 2) {
             unoButton.classList.remove('hidden');
             unoWarning.classList.remove('hidden');
+            unoWarning.textContent = '⚠️ You have 2 cards! Call UNO before playing your next card!';
         } else {
             unoButton.classList.add('hidden');
             unoWarning.classList.add('hidden');
@@ -520,13 +541,14 @@ class UnoMultiplayerClient {
         const currentPlayer = this.gameState.players.find(p => p.isCurrentPlayer);
         const isMyTurn = currentPlayer && currentPlayer.id === this.socket.id;
 
-        const hasPlayerWithOneCard = !isMyTurn && this.gameState && this.gameState.players &&
-            this.gameState.players.some(player => {
+        const playerWithOneCard = !isMyTurn && this.gameState && this.gameState.players &&
+            this.gameState.players.find(player => {
                 return player.handSize === 1 && !player.calledUno && player.id !== this.socket.id;
             });
 
-        if (hasPlayerWithOneCard) {
+        if (playerWithOneCard) {
             unoCallOut.classList.remove('hidden');
+            unoCallOut.textContent = `📢 ${playerWithOneCard.name} forgot to call UNO!`;
         } else {
             unoCallOut.classList.add('hidden');
         }
@@ -541,7 +563,7 @@ class UnoMultiplayerClient {
 
     callOutUno() {
         this.socket.emit('callOutUno');
-        this.showNotification('📢 Called out player for not saying UNO!');
+        this.showNotification('📢 Called out player for not saying UNO! They draw 4 cards.');
         document.getElementById('unoCallOut').classList.add('hidden');
     }
 
