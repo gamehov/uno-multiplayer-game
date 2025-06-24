@@ -355,7 +355,7 @@ class UnoMultiplayerClient {
 
             // Show UNO status
             const unoStatus = player.handSize === 1 ?
-                (player.calledUno ? '🎯 UNO!' : '⚠️ Forgot UNO!') : '';
+                (player.calledUno ? '🎯 UNO!' : (player.forgotUno ? '⚠️ Forgot UNO!' : '')) : '';
 
             // Create card backs display for other players
             let cardBacksHtml = '';
@@ -553,9 +553,9 @@ class UnoMultiplayerClient {
         const currentPlayer = this.gameState.players.find(p => p.isCurrentPlayer);
         const isMyTurn = currentPlayer && currentPlayer.id === this.socket.id;
 
-        const playerWithOneCard = !isMyTurn && this.gameState && this.gameState.players &&
+        const playerWithOneCard = this.gameState && this.gameState.players &&
             this.gameState.players.find(player => {
-                return player.handSize === 1 && !player.calledUno && player.id !== this.socket.id;
+                return player.handSize === 1 && player.forgotUno && player.id !== this.socket.id;
             });
 
         if (playerWithOneCard) {
