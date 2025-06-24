@@ -132,6 +132,7 @@ class UnoGame {
             }
             // Reset UNO calling status
             player.calledUno = false;
+            player.forgotUno = false;
             console.log(`Player ${player.name} dealt ${player.hand.length} cards`);
         });
         
@@ -176,19 +177,16 @@ class UnoGame {
         player.hand.splice(cardIndex, 1);
         this.discardPile.push(card);
 
-        // Reset UNO calling status when player plays a card (they can be called out again next time)
-        if (player.hand.length > 1) {
-            player.calledUno = false;
-        }
-
-        // When player goes down to 1 card, they need to call UNO
-        // Don't automatically reset calledUno - let them call it or be called out
+        // Check if player went down to 1 card without calling UNO
         if (player.hand.length === 1) {
-            // Only reset if they haven't called UNO yet (first time going to 1 card)
-            // If they already called UNO, keep it true
-            if (!player.hasOwnProperty('calledUno')) {
-                player.calledUno = false;
+            // If they didn't call UNO before playing this card, they can be called out
+            if (!player.calledUno) {
+                player.forgotUno = true; // Mark that they forgot to call UNO
             }
+        } else {
+            // Reset UNO status when they have more than 1 card
+            player.calledUno = false;
+            player.forgotUno = false;
         }
         
         // Handle special cards
@@ -306,6 +304,7 @@ class UnoGame {
         this.players.forEach(player => {
             player.hand = [];
             player.calledUno = false;
+            player.forgotUno = false;
         });
         this.deck = [];
         this.discardPile = [];
@@ -333,6 +332,7 @@ class UnoGame {
                 handSize: p.hand.length,
                 isCurrentPlayer: this.players[this.currentPlayerIndex].id === p.id,
                 calledUno: p.calledUno || false,
+                forgotUno: p.forgotUno || false,
                 score: p.score || 0
             })),
             playerHand: player ? player.hand : [],
@@ -498,10 +498,10 @@ io.on('connection', (socket) => {
         const game = games.get(playerData.gameId);
         if (!game) return;
 
-        // Find player with 1 card who hasn't called UNO and hasn't been called out yet
+        // Find player with 1 card who forgot to call UNO and hasn't been called out yet
         const targetPlayer = game.players.find(p =>
             p.hand.length === 1 &&
-            !p.calledUno &&
+            p.forgotUno &&
             p.id !== socket.id // Can't call out yourself
         );
 
@@ -516,7 +516,8 @@ io.on('connection', (socket) => {
                 }
             }
 
-            // Mark that they've been called out (so they can't be called out again until they play)
+            // Mark that they've been called out (so they can't be called out again)
+            targetPlayer.forgotUno = false;
             targetPlayer.calledUno = true;
 
             const callerPlayer = game.players.find(p => p.id === socket.id);
